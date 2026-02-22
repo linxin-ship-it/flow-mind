@@ -133,7 +133,7 @@
                 </button>
             </div>
             <div class="modal-body">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
                     <button class="export-option" onclick="exportFormat('svg')">
                         <div class="export-icon">
                             <svg width="32" height="32" viewBox="0 0 1025 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
@@ -142,17 +142,6 @@
                         </div>
                         <div class="export-title">SVG</div>
                         <div class="export-desc">矢量格式，可编辑</div>
-                    </button>
-                    <button class="export-option" onclick="exportFormat('png')">
-                        <div class="export-icon">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <circle cx="8.5" cy="8.5" r="1.5"/>
-                                <polyline points="21 15 16 10 5 21"/>
-                            </svg>
-                        </div>
-                        <div class="export-title">PNG</div>
-                        <div class="export-desc">图片格式，通用</div>
                     </button>
                     <button class="export-option" onclick="exportFormat('mermaid')">
                         <div class="export-icon">
@@ -481,41 +470,6 @@ graph TD
             URL.revokeObjectURL(url);
         }
 
-        function downloadPNG() {
-            const svg = document.getElementById('mermaidOutput').querySelector('svg');
-            if (!svg) return;
-            
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            
-            const serializer = new XMLSerializer();
-            let source = serializer.serializeToString(svg);
-            
-            // Add XML declaration and namespaces
-            source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
-            
-            const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(source);
-            
-            img.onload = function() {
-                canvas.width = img.width * 2; // High DPI
-                canvas.height = img.height * 2;
-                ctx.scale(2, 2);
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
-                
-                const pngUrl = canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.href = pngUrl;
-                link.download = 'flowchart.png';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
-            
-            img.src = url;
-        }
 
         // 缩放功能
         let currentScale = 1;
@@ -643,9 +597,6 @@ graph TD
             switch(format) {
                 case 'svg':
                     downloadSVG();
-                    break;
-                case 'png':
-                    downloadPNG();
                     break;
                 case 'mermaid':
                     downloadMermaid();
