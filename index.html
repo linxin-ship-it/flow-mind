@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowMind - AI 流程图生成器</title>
+    <link rel="stylesheet" href="flowmind.css">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">F</div>
+                <span>FlowMind</span>
+            </div>
+            <button class="btn btn-ghost" onclick="openConfig()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                配置
+            </button>
+        </header>
+
+        <div class="main-layout">
+            <!-- 左侧面板 - 输入区 (1/3) -->
+            <div class="left-panel">
+                <div class="panel" style="flex: 1;">
+                    <div class="panel-header">
+                        <span>流程描述输入</span>
+                    </div>
+                    <textarea id="userInput" placeholder="请描述您想要生成的流程... 例如：帮我绘制一个电商订单处理流程，包括下单、支付、发货、收货、退款等环节"></textarea>
+                    <div class="button-group">
+                        <button class="btn btn-green" id="generateBtn" onclick="generateDiagram()">
+                            <span id="generateText">生成流程图</span>
+                        </button>
+                        <button class="btn btn-primary" onclick="clearAll()">清空</button>
+                    </div>
+                </div>
+
+                <div class="error-banner" id="errorBanner">
+                    <div class="error-header">
+                        <span>⚠️ 生成失败</span>
+                        <button class="btn btn-primary" style="height: 2rem; font-size: 0.75rem;" onclick="fixWithAI()">
+                            <span id="fixText">AI 修复</span>
+                        </button>
+                    </div>
+                    <div class="error-content" id="errorContent"></div>
+                </div>
+
+                <div class="panel" style="flex: 1;">
+                    <div class="panel-header">
+                        <span>Mermaid 代码</span>
+                        <span style="font-size: 0.75rem; font-weight: 400; color: var(--muted-foreground);">支持手动编辑</span>
+                    </div>
+                    <textarea class="code-editor" id="codeEditor"></textarea>
+                </div>
+            </div>
+
+            <!-- 右侧面板 - 预览区 (2/3) -->
+            <div class="right-panel">
+                <div class="panel" style="flex: 1;">
+                    <div class="panel-header">
+                        <span>流程图预览</span>
+                        <div class="preview-controls" id="previewControls" style="display: none; margin: 0;">
+                            <div class="zoom-controls" style="display: flex; gap: 0.25rem; margin-right: 1rem;">
+                                <button class="btn btn-ghost" onclick="zoomOut()" style="padding: 0.25rem 0.5rem; height: 2rem;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="8" y1="12" x2="16" y2="12"/>
+                                    </svg>
+                                </button>
+                                <button class="btn btn-ghost" onclick="resetZoom()" style="padding: 0.25rem 0.5rem; height: 2rem; font-size: 0.75rem;">
+                                    100%
+                                </button>
+                                <button class="btn btn-ghost" onclick="zoomIn()" style="padding: 0.25rem 0.5rem; height: 2rem;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="16"/>
+                                        <line x1="8" y1="12" x2="16" y2="12"/>
+                                    </svg>
+                                </button>
+                                <button class="btn btn-ghost" onclick="toggleFullscreen()" style="padding: 0.25rem 0.5rem; height: 2rem;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <button class="btn btn-green" onclick="openExportModal()">
+                                <svg width="16" height="16" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" style="margin-right: 0.25rem;">
+                                    <path d="M849.2 599v217H178.5V599c-0.7-23.7-20.1-42.7-44-42.7s-43.3 19-44 42.7v252.5c0 28.9 23.6 52.5 52.5 52.5h741.7c28.9 0 52.5-23.6 52.5-52.5V599c-0.7-23.7-20.1-42.7-44-42.7s-43.3 19-44 42.7z" fill="currentColor"></path>
+                                    <path d="M482.7 135.4l-164 164c-17.1 17.1-17.1 45.1 0 62.2s45.1 17.1 62.2 0l85.7-85.7v314.8c0 26 21.3 47.2 47.2 47.2 26 0 47.2-21.3 47.2-47.2V276l85.7 85.7c17.1 17.1 45.1 17.1 62.2 0s17.1-45.1 0-62.2l-164-164c-17.1-17.2-45.1-17.2-62.2-0.1z" fill="currentColor"></path>
+                                </svg>
+                                导出
+                            </button>
+                        </div>
+                    </div>
+                    <div class="preview-area" id="previewArea">
+                        <div class="loading-overlay" id="loadingOverlay">
+                            <div class="spinner"></div>
+                            <span style="color: var(--muted-foreground); font-size: 0.875rem;">正在生成...</span>
+                        </div>
+                        <div class="preview-placeholder" id="placeholder">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 1rem; opacity: 0.3;">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="9" y1="9" x2="15" y2="15"/>
+                                <line x1="15" y1="9" x2="9" y2="15"/>
+                            </svg>
+                            <div style="font-size: 0.875rem; color: var(--muted-foreground);">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">等待输入</div>
+                                <div>在左侧输入流程描述并点击生成</div>
+                                <div>流程图将在此处显示</div>
+                            </div>
+                        </div>
+                        <div id="mermaidOutput" class="hidden"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">导出流程图</div>
+                <button class="btn btn-ghost" onclick="closeExportModal()" style="padding: 0.25rem; height: auto;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <button class="export-option" onclick="exportFormat('svg')">
+                        <div class="export-icon">
+                            <svg width="32" height="32" viewBox="0 0 1025 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M928.034999 416.018999c-28.415112 0-53.950314 12.351614-71.549764 31.999l-189.946064 0 134.299803-134.299803c26.303178 1.471954 53.11834-7.839755 73.213712-27.967126 37.502828-37.502828 37.502828-98.268929 0-135.771757s-98.268929-37.502828-135.771757 0c-20.095372 20.095372-29.407081 46.910534-27.967126 73.213712l-134.299803 134.299803 0-189.946064c19.647386-17.567451 31.999-43.102653 31.999-71.549764 0-53.022343-42.974657-95.997-95.997-95.997s-95.997 42.974657-95.997 95.997c0 28.415112 12.351614 53.950314 31.999 71.549764l0 189.946064-134.299803-134.299803c1.439955-26.303178-7.839755-53.11834-27.967126-73.213712-37.502828-37.502828-98.268929-37.502828-135.771757 0s-37.502828 98.268929 0 135.771757c20.095372 20.095372 46.910534 29.407081 73.213712 27.967126l134.299803 134.299803-189.946064 0c-17.567451-19.647386-43.102653-31.999-71.549764-31.999-53.022343 0-95.997 42.974657-95.997 95.997s42.974657 95.997 95.997 95.997c28.415112 0 53.950314-12.351614 71.549764-31.999l189.946064 0-134.299803 134.299803c-26.303178-1.471954-53.11834 7.839755-73.213712 27.967126-37.502828 37.502828-37.502828 98.268929 0 135.771757s98.268929 37.502828 135.771757 0c20.095372-20.095372 29.407081-46.910534 27.967126-73.213712l134.299803-134.299803 0 189.946064c-19.647386 17.567451-31.999 43.102653-31.999 71.517765 0 53.022343 42.974657 95.997 95.997 95.997s95.997-42.974657 95.997-95.997c0-28.415112-12.351614-53.950314-31.999-71.549764l0-189.946064 134.299803 134.299803c-1.471954 26.303178 7.839755 53.11834 27.967126 73.213712 37.502828 37.502828 98.268929 37.502828 135.771757 0s37.502828-98.268929 0-135.771757c-20.095372-20.095372-46.910534-29.407081-73.213712-27.967126l-134.299803-134.299803 189.946064 0c17.567451 19.647386 43.102653 31.999 71.517765 31.999 53.022343 0 95.997-42.974657 95.997-95.997s-42.974657-95.997-95.997-95.997z" fill="currentColor"></path>
+                            </svg>
+                        </div>
+                        <div class="export-title">SVG</div>
+                        <div class="export-desc">矢量格式，可编辑</div>
+                    </button>
+                    <button class="export-option" onclick="exportFormat('png')">
+                        <div class="export-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                        </div>
+                        <div class="export-title">PNG</div>
+                        <div class="export-desc">图片格式，通用</div>
+                    </button>
+                    <button class="export-option" onclick="exportFormat('mermaid')">
+                        <div class="export-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                        </div>
+                        <div class="export-title">Mermaid</div>
+                        <div class="export-desc">源代码格式，可编辑</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Modal -->
+    <div class="modal-overlay" id="configModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">API 配置</div>
+                <button class="btn btn-ghost" onclick="closeConfig()" style="padding: 0.25rem; height: auto;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Base URL</label>
+                    <input type="text" class="form-input" id="baseUrl" placeholder="https://api.openai.com/v1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Model Name</label>
+                    <input type="text" class="form-input" id="modelName" placeholder="gpt-4">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">API Key</label>
+                    <input type="password" class="form-input" id="apiKey" placeholder="sk-...">
+                </div>
+                <div style="background-color: #f4f4f5; padding: 0.75rem; border-radius: var(--radius); font-size: 0.75rem; color: var(--muted-foreground); margin-top: 1rem;">
+                    配置信息将保存在浏览器本地存储中，不会上传到服务器。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeConfig()">取消</button>
+                <button class="btn btn-primary" onclick="saveConfig()">保存配置</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // System Prompt
+        const SYSTEM_PROMPT = `你是一个将"用户用自然语言描述的流程"精确转换为可直接渲染的 Mermaid 图表文本的专用模型。遵循下面规则并严格输出，不要输出与图表无关的解释或额外文字。
+
+输出格式与规则
+- 输出必须只包含 Mermaid 代码块，格式为三个反引号加语言标签：\`\`\`mermaid\n...mermaid 内容...\n\`\`\`。不要在代码块外放任何文字。
+- 默认使用流程图(flowchart)。首行使用方向声明：flowchart TD（自上而下）。若用户明确要求横向或其它类型，可改为 LR/BT 或指定 sequenceDiagram 等。
+- 节点命名：使用简短的字母数字 ID（如 A, B1, step_2），后跟方括号或圆括号中的可读标签，例如: A[开始] 或 B(判断条件?)。ID 与标签之间用无空格的方括号/圆括号语法。
+- 分支/判断：判断节点用圆括号或菱形语法（如 C{条件?}），并用箭头 + 标签表示分支：C -->|是| D。
+- 子流程/分组：当用户提到"子流程"或"模块"时，使用 subgraph 标记：subgraph 名称 ... end。
+- 并行/同时执行：若用户提到并行，用并列箭头或并用子图表示并行分支，确保 Mermaid 可渲染（示例：subgraph 并行A ... end; subgraph 并行B ... end）。
+- 步骤顺序：每个步骤用唯一 ID，箭头用 --> 或 ---|标签|--> 明确方向与条件。
+- 文本与标签：所有中文/空格安全地放在标签内；ID 只允许字母、数字、下划线和短横线。
+- 长文本：若步骤描述过长，简短化为 10–20 字以内的标签，同时在 ID 后可加注释（注释不要输出）——但只输出最终缩短的 Mermaid 标签。
+- 校验与澄清：若用户描述模糊或信息不足以构建图表，先只输出一条简短澄清问题（普通文字，不包裹在代码块内）。澄清问题必须非常具体，最多一句话。
+
+示例
+- 用户输入：帮我绘制一个用大模型审核发票的流程图。
+- 输出（严格示例）：
+\`\`\`mermaid
+graph TD
+    A[开始: 接收发票文件] --> B{文件格式判断}
+    B -- 图片或PDF --> C[OCR 文字识别提取]
+    B -- 电子发票或XML --> D[数据结构化解析]
+    C --> E[构建 Prompt 提示词与上下文]
+    D --> E
+    
+    E --> F[调用大模型 LLM 进行分析]
+    
+    subgraph 核心审核逻辑
+    F --> G1[合规性检查-抬头税号印章]
+    F --> G2[逻辑性检查-金额计算税率匹配]
+    F --> G3[业务关联检查-匹配采购单合同]
+    F --> G4[风险识别-重复报销连号发票]
+    end
+    
+    G1 & G2 & G3 & G4 --> H{审核结果判定}
+    
+    H -- 全部通过 --> I[标记为 审核通过]
+    H -- 存在疑点 --> J[标记为 人工复核 并高亮风险点]
+    H -- 明显违规 --> K[标记为 审核驳回 并说明原因]
+    
+    I --> L[数据存入财务系统或ERP]
+    J --> M[人工介入处理]
+    K --> N[通知提交人]
+    
+    M --> O{人工复核结果}
+    O -- 通过 --> L
+    O -- 驳回 --> N
+    
+    L --> P[结束]
+    N --> P
+\`\`\`
+
+行为约束
+- 绝不输出流程图以外的多余解释或步骤说明。
+- 优先保持 Mermaid 语法兼容性，确保渲染器能直接把输出转换为流程图。
+- 如用户指定样式、方向、或要导出为 sequenceDiagram/gantt，遵从其要求并只输出相应 Mermaid 代码块。
+
+现在准备就绪：等待用户以自然语言描述流程并返回对应的 Mermaid 可渲染代码（或在信息不足时返回一条简短的澄清问题）。`;
+
+        let currentError = null;
+        let lastUserPrompt = '';
+
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose'
+        });
+
+        // Load config from localStorage
+        function loadConfig() {
+            const config = JSON.parse(localStorage.getItem('flowmind_config') || '{}');
+            document.getElementById('baseUrl').value = config.baseUrl || '';
+            document.getElementById('modelName').value = config.modelName || '';
+            document.getElementById('apiKey').value = config.apiKey || '';
+        }
+
+        function saveConfig() {
+            const config = {
+                baseUrl: document.getElementById('baseUrl').value,
+                modelName: document.getElementById('modelName').value,
+                apiKey: document.getElementById('apiKey').value
+            };
+            localStorage.setItem('flowmind_config', JSON.stringify(config));
+            closeConfig();
+        }
+
+        function openConfig() {
+            loadConfig();
+            document.getElementById('configModal').classList.add('show');
+        }
+
+        function closeConfig() {
+            document.getElementById('configModal').classList.remove('show');
+        }
+
+        // Close modal on overlay click
+        document.getElementById('configModal').addEventListener('click', function(e) {
+            if (e.target === this) closeConfig();
+        });
+
+        async function generateDiagram(isFix = false) {
+            const config = JSON.parse(localStorage.getItem('flowmind_config') || '{}');
+            
+            if (!config.baseUrl || !config.apiKey) {
+                alert('请先在配置中设置 API 信息');
+                openConfig();
+                return;
+            }
+
+            const userInput = document.getElementById('userInput').value.trim();
+            if (!userInput && !isFix) {
+                alert('请输入流程描述');
+                return;
+            }
+
+            const btn = document.getElementById('generateBtn');
+            const btnText = document.getElementById('generateText');
+            const loading = document.getElementById('loadingOverlay');
+            
+            btn.disabled = true;
+            btnText.textContent = isFix ? '修复中...' : '生成中...';
+            loading.classList.add('show');
+            document.getElementById('errorBanner').classList.remove('show');
+
+            try {
+                let userPrompt;
+                if (isFix && currentError) {
+                    userPrompt = `之前生成的 Mermaid 代码有以下错误，请修复并重新输出正确的代码：\n\n错误信息：${currentError}\n\n原代码：\n${document.getElementById('codeEditor').value}\n\n请只输出修复后的 Mermaid 代码块，不要有任何解释。`;
+                } else {
+                    userPrompt = userInput;
+                    lastUserPrompt = userInput;
+                }
+
+                const response = await fetch(config.baseUrl + '/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${config.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: config.modelName || 'gpt-4',
+                        messages: [
+                            { role: 'system', content: SYSTEM_PROMPT },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        temperature: 0.2
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API 请求失败: ${response.status} ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+                
+                // Extract mermaid code
+                const mermaidMatch = content.match(/```mermaid\s*([\s\S]*?)```/);
+                if (mermaidMatch) {
+                    const code = mermaidMatch[1].trim();
+                    document.getElementById('codeEditor').value = code;
+                    await renderDiagram(code);
+                    currentError = null;
+                } else {
+                    // Check if it's a clarification question
+                    if (content.includes('?') && !content.includes('->') && !content.includes('[')) {
+                        alert('模型需要澄清：' + content);
+                    } else {
+                        throw new Error('未找到有效的 Mermaid 代码块');
+                    }
+                }
+
+            } catch (error) {
+                console.error('Generation error:', error);
+                currentError = error.message;
+                document.getElementById('errorContent').textContent = error.message;
+                document.getElementById('errorBanner').classList.add('show');
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = '生成流程图';
+                loading.classList.remove('show');
+            }
+        }
+
+        async function fixWithAI() {
+            if (!currentError) return;
+            await generateDiagram(true);
+        }
+
+        async function renderDiagram(code) {
+            const output = document.getElementById('mermaidOutput');
+            const placeholder = document.getElementById('placeholder');
+            const previewControls = document.getElementById('previewControls');
+            
+            try {
+                // Clear previous
+                output.innerHTML = '';
+                
+                // Generate unique ID
+                const id = 'mermaid-' + Date.now();
+                
+                // Render
+                const { svg } = await mermaid.render(id, code);
+                output.innerHTML = svg;
+                
+                output.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                previewControls.style.display = 'flex';
+                
+                // 初始化拖动功能
+                initDrag();
+                
+            } catch (error) {
+                console.error('Render error:', error);
+                currentError = error.message;
+                document.getElementById('errorContent').textContent = '渲染错误: ' + error.message;
+                document.getElementById('errorBanner').classList.add('show');
+                throw error;
+            }
+        }
+
+        // Manual edit handler
+        let debounceTimer;
+        document.getElementById('codeEditor').addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const code = this.value;
+                if (code.trim()) {
+                    renderDiagram(code).catch(() => {});
+                }
+            }, 1000);
+        });
+
+        function clearAll() {
+            document.getElementById('userInput').value = '';
+            document.getElementById('codeEditor').value = '';
+            document.getElementById('mermaidOutput').innerHTML = '';
+            document.getElementById('mermaidOutput').classList.add('hidden');
+            document.getElementById('placeholder').classList.remove('hidden');
+            document.getElementById('downloadActions').style.display = 'none';
+            document.getElementById('errorBanner').classList.remove('show');
+            currentError = null;
+        }
+
+        function downloadSVG() {
+            const svg = document.getElementById('mermaidOutput').querySelector('svg');
+            if (!svg) return;
+            
+            const serializer = new XMLSerializer();
+            let source = serializer.serializeToString(svg);
+            
+            // Add namespaces
+            if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+                source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+            }
+            if(!source.match(/^<svg[^>]+xmlns:xlink="http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+                source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+            }
+            
+            const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'flowchart.svg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadPNG() {
+            const svg = document.getElementById('mermaidOutput').querySelector('svg');
+            if (!svg) return;
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            const serializer = new XMLSerializer();
+            let source = serializer.serializeToString(svg);
+            
+            // Add XML declaration and namespaces
+            source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+            
+            const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(source);
+            
+            img.onload = function() {
+                canvas.width = img.width * 2; // High DPI
+                canvas.height = img.height * 2;
+                ctx.scale(2, 2);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                
+                const pngUrl = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = pngUrl;
+                link.download = 'flowchart.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+            
+            img.src = url;
+        }
+
+        // 缩放功能
+        let currentScale = 1;
+        const scaleStep = 0.1;
+        const minScale = 0.5;
+        const maxScale = 3;
+
+        function zoomIn() {
+            if (currentScale < maxScale) {
+                currentScale += scaleStep;
+                applyZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (currentScale > minScale) {
+                currentScale -= scaleStep;
+                applyZoom();
+            }
+        }
+
+        function resetZoom() {
+            currentScale = 1;
+            applyZoom();
+        }
+
+        function applyZoom() {
+            const svg = document.getElementById('mermaidOutput').querySelector('svg');
+            if (svg) {
+                svg.style.transform = `scale(${currentScale})`;
+                svg.style.transformOrigin = 'center center';
+                
+                // 更新缩放按钮文本
+                const resetBtn = document.querySelector('.zoom-controls button:nth-child(2)');
+                if (resetBtn) {
+                    resetBtn.textContent = `${Math.round(currentScale * 100)}%`;
+                }
+            }
+        }
+
+        function openInNewWindow() {
+            const svg = document.getElementById('mermaidOutput').querySelector('svg');
+            if (!svg) return;
+            
+            const serializer = new XMLSerializer();
+            let source = serializer.serializeToString(svg);
+            
+            // Add namespaces
+            if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+                source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+            }
+            if(!source.match(/^<svg[^>]+xmlns:xlink="http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+                source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+            }
+            
+            const newWindow = window.open();
+            newWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>流程图预览</title>
+                    <style>
+                        body { 
+                            margin: 0; 
+                            padding: 20px; 
+                            display: flex; 
+                            justify-content: center; 
+                            align-items: center; 
+                            min-height: 100vh;
+                            background-color: #f5f5f7;
+                        }
+                        svg { 
+                            max-width: 100%; 
+                            max-height: 90vh;
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                            background: white;
+                            border-radius: 8px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${source}
+                </body>
+                </html>
+            `);
+            newWindow.document.close();
+        }
+
+        function downloadMermaid() {
+            const code = document.getElementById('codeEditor').value;
+            if (!code.trim()) {
+                alert('没有可下载的Mermaid代码');
+                return;
+            }
+            
+            // 创建纯文本的Mermaid文件
+            const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'flowchart.mmd';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // 导出模态框功能
+        function openExportModal() {
+            document.getElementById('exportModal').classList.add('show');
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.remove('show');
+        }
+
+        // Close export modal on overlay click
+        document.getElementById('exportModal').addEventListener('click', function(e) {
+            if (e.target === this) closeExportModal();
+        });
+
+        function exportFormat(format) {
+            closeExportModal();
+            
+            switch(format) {
+                case 'svg':
+                    downloadSVG();
+                    break;
+                case 'png':
+                    downloadPNG();
+                    break;
+                case 'mermaid':
+                    downloadMermaid();
+                    break;
+            }
+        }
+
+        // 全屏功能
+        function toggleFullscreen() {
+            const previewArea = document.getElementById('previewArea');
+            const svg = document.getElementById('mermaidOutput').querySelector('svg');
+            
+            if (!svg) return;
+            
+            const serializer = new XMLSerializer();
+            let source = serializer.serializeToString(svg);
+            
+            // Add namespaces
+            if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+                source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+            }
+            if(!source.match(/^<svg[^>]+xmlns:xlink="http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+                source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+            }
+            
+            const newWindow = window.open();
+            newWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>流程图全屏预览</title>
+                    <style>
+                        * {
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                        }
+                        body { 
+                            margin: 0; 
+                            padding: 20px; 
+                            display: flex; 
+                            justify-content: center; 
+                            align-items: center; 
+                            min-height: 100vh;
+                            background-color: #f5f5f7;
+                            overflow: auto;
+                        }
+                        .container {
+                            max-width: 100%;
+                            max-height: 100vh;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            padding: 20px;
+                        }
+                        svg { 
+                            max-width: 100%;
+                            max-height: 90vh;
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                            background: white;
+                            border-radius: 8px;
+                        }
+                        .controls {
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            display: flex;
+                            gap: 10px;
+                            z-index: 100;
+                        }
+                        .controls button {
+                            padding: 8px 16px;
+                            background: #181818;
+                            color: white;
+                            border: none;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        }
+                        .controls button:hover {
+                            background: #2a2a2a;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="controls">
+                        <button onclick="window.print()">打印</button>
+                        <button onclick="window.close()">关闭</button>
+                    </div>
+                    <div class="container">
+                        ${source}
+                    </div>
+                </body>
+                </html>
+            `);
+            newWindow.document.close();
+        }
+
+        // 拖动功能
+        let isDragging = false;
+        let startX, startY;
+        let translateX = 0, translateY = 0;
+        let lastTranslateX = 0, lastTranslateY = 0;
+
+        function initDrag() {
+            const svg = document.getElementById('mermaidOutput').querySelector('svg');
+            if (!svg) return;
+            
+            const previewArea = document.getElementById('previewArea');
+            
+            // 重置变换
+            svg.style.transform = 'translate(0px, 0px) scale(1)';
+            translateX = 0;
+            translateY = 0;
+            lastTranslateX = 0;
+            lastTranslateY = 0;
+            
+            // 添加鼠标事件监听
+            svg.addEventListener('mousedown', startDrag);
+            svg.addEventListener('touchstart', startDragTouch);
+            
+            // 添加鼠标移动和释放事件到整个文档
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchmove', dragTouch);
+            document.addEventListener('touchend', stopDrag);
+            
+            // 阻止预览区域的默认滚动行为
+            previewArea.addEventListener('wheel', handleWheel, { passive: false });
+        }
+
+        function startDrag(e) {
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+            e.preventDefault();
+        }
+
+        function startDragTouch(e) {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX - translateX;
+                startY = e.touches[0].clientY - translateY;
+                e.preventDefault();
+            }
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            
+            e.preventDefault();
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            
+            applyDrag();
+        }
+
+        function dragTouch(e) {
+            if (!isDragging || e.touches.length !== 1) return;
+            
+            e.preventDefault();
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            
+            applyDrag();
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            lastTranslateX = translateX;
+            lastTranslateY = translateY;
+        }
+
+        function applyDrag() {
+            const svg = document.getElementById('mermaidOutput').querySelector('svg');
+            if (svg) {
+                // 结合缩放和拖动变换
+                svg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+            }
+        }
+
+        function handleWheel(e) {
+            const svg = document.getElementById('mermaidOutput').querySelector('svg');
+            if (!svg) return;
+            
+            e.preventDefault();
+            
+            // 如果按住Ctrl键，则缩放
+            if (e.ctrlKey) {
+                const delta = e.deltaY > 0 ? -scaleStep : scaleStep;
+                const newScale = Math.max(minScale, Math.min(maxScale, currentScale + delta));
+                
+                if (newScale !== currentScale) {
+                    currentScale = newScale;
+                    applyZoom();
+                    applyDrag(); // 重新应用拖动变换
+                }
+            } else {
+                // 否则，拖动
+                translateX += e.deltaX;
+                translateY += e.deltaY;
+                applyDrag();
+            }
+        }
+
+        // 更新applyZoom函数以支持拖动
+        const originalApplyZoom = applyZoom;
+        applyZoom = function() {
+            originalApplyZoom();
+            applyDrag(); // 缩放后重新应用拖动
+        };
+
+        // Initialize
+        loadConfig();
+    </script>
+</body>
+</html>
