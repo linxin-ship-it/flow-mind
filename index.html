@@ -28,7 +28,7 @@
             <div class="left-panel">
                 <div class="panel" style="flex: 1;">
                     <div class="panel-header">
-                        <span>流程描述输入</span>
+                        <span>流程描述</span>
                     </div>
                     <textarea id="userInput" placeholder="请描述您想要生成的流程... 例如：帮我绘制一个电商订单处理流程，包括下单、支付、发货、收货、退款等环节"></textarea>
                     <div class="button-group">
@@ -87,13 +87,6 @@
                                     </svg>
                                 </button>
                             </div>
-                            <button class="btn btn-green" onclick="openExportModal()">
-                                <svg width="16" height="16" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" style="margin-right: 0.25rem;">
-                                    <path d="M849.2 599v217H178.5V599c-0.7-23.7-20.1-42.7-44-42.7s-43.3 19-44 42.7v252.5c0 28.9 23.6 52.5 52.5 52.5h741.7c28.9 0 52.5-23.6 52.5-52.5V599c-0.7-23.7-20.1-42.7-44-42.7s-43.3 19-44 42.7z" fill="currentColor"></path>
-                                    <path d="M482.7 135.4l-164 164c-17.1 17.1-17.1 45.1 0 62.2s45.1 17.1 62.2 0l85.7-85.7v314.8c0 26 21.3 47.2 47.2 47.2 26 0 47.2-21.3 47.2-47.2V276l85.7 85.7c17.1 17.1 45.1 17.1 62.2 0s17.1-45.1 0-62.2l-164-164c-17.1-17.2-45.1-17.2-62.2-0.1z" fill="currentColor"></path>
-                                </svg>
-                                导出
-                            </button>
                         </div>
                     </div>
                     <div class="preview-area" id="previewArea">
@@ -114,6 +107,16 @@
                             </div>
                         </div>
                         <div id="mermaidOutput" class="hidden"></div>
+                        <!-- 浮动导出按钮 -->
+                        <div class="floating-export-btn" id="floatingExportBtn" style="display: none;">
+                            <button class="btn btn-green" onclick="openExportModal()">
+                                <svg width="16" height="16" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" style="margin-right: 0.25rem;">
+                                    <path d="M921.6 1024H102.4c-56.32 0-102.4-46.08-102.4-102.4V102.4C0 46.08 46.08 0 102.4 0h256c30.72 0 51.2 20.48 51.2 51.2s-20.48 51.2-51.2 51.2H153.6c-30.72 0-51.2 20.48-51.2 51.2v716.8c0 30.72 20.48 51.2 51.2 51.2h716.8c30.72 0 51.2-20.48 51.2-51.2v-204.8c0-30.72 20.48-51.2 51.2-51.2s51.2 20.48 51.2 51.2v256c0 56.32-46.08 102.4-102.4 102.4z" fill="currentColor" p-id="6534"></path>
+                                    <path d="M552.96 399.36L916.48 35.84c20.48-20.48 51.2-20.48 71.68 0 20.48 20.48 20.48 51.2 0 71.68l-363.52 363.52c-20.48 20.48-51.2 20.48-71.68 0-20.48-15.36-20.48-51.2 0-71.68zM768 0h204.8c30.72 0 51.2 20.48 51.2 51.2s-20.48 51.2-51.2 51.2h-204.8c-30.72 0-51.2-20.48-51.2-51.2s20.48-51.2 51.2-51.2z m204.8 0c30.72 0 51.2 20.48 51.2 51.2v204.8c0 30.72-20.48 51.2-51.2 51.2s-51.2-20.48-51.2-51.2V51.2c0-30.72 20.48-51.2 51.2-51.2z" fill="currentColor" p-id="6535"></path>
+                                </svg>
+                                导出
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -393,6 +396,7 @@ graph TD
             const output = document.getElementById('mermaidOutput');
             const placeholder = document.getElementById('placeholder');
             const previewControls = document.getElementById('previewControls');
+            const floatingExportBtn = document.getElementById('floatingExportBtn');
             
             try {
                 // Clear previous
@@ -408,6 +412,12 @@ graph TD
                 output.classList.remove('hidden');
                 placeholder.classList.add('hidden');
                 previewControls.style.display = 'flex';
+                floatingExportBtn.style.display = 'block';
+                
+                // 使用setTimeout确保DOM更新后再添加show类
+                setTimeout(() => {
+                    floatingExportBtn.classList.add('show');
+                }, 100);
                 
                 // 初始化拖动功能
                 initDrag();
@@ -442,6 +452,13 @@ graph TD
             document.getElementById('downloadActions').style.display = 'none';
             document.getElementById('errorBanner').classList.remove('show');
             currentError = null;
+            
+            // 隐藏浮动导出按钮
+            const floatingExportBtn = document.getElementById('floatingExportBtn');
+            floatingExportBtn.classList.remove('show');
+            setTimeout(() => {
+                floatingExportBtn.style.display = 'none';
+            }, 300);
         }
 
         function downloadSVG() {
@@ -499,7 +516,8 @@ graph TD
         function applyZoom() {
             const svg = document.getElementById('mermaidOutput').querySelector('svg');
             if (svg) {
-                svg.style.transform = `scale(${currentScale})`;
+                // 结合缩放和拖动变换
+                svg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
                 svg.style.transformOrigin = 'center center';
                 
                 // 更新缩放按钮文本
@@ -801,13 +819,6 @@ graph TD
                 applyDrag();
             }
         }
-
-        // 更新applyZoom函数以支持拖动
-        const originalApplyZoom = applyZoom;
-        applyZoom = function() {
-            originalApplyZoom();
-            applyDrag(); // 缩放后重新应用拖动
-        };
 
         // Initialize
         loadConfig();

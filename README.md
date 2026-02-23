@@ -15,6 +15,7 @@
   - 全屏预览
   - 拖拽移动流程图
 - **代码编辑**：支持手动编辑Mermaid代码，实时预览效果
+- **AI修复**：当生成出错时，可使用AI自动修复代码
 
 ## 使用说明
 
@@ -40,9 +41,13 @@
 
 2. 打开 `index.html` 文件即可使用
 
+## 在线演示
+
+访问 [https://your-username.github.io/flow-mind/](https://your-username.github.io/flow-mind/) 查看在线演示
+
 ## 注意事项
 
-- 需要有效的API密钥才能使用AI生成功能
+- 需要有效的OpenAI API密钥才能使用AI生成功能
 - 配置信息保存在浏览器本地存储中，不会上传到服务器
 - 支持手动编辑Mermaid代码，无需API也可使用
 
